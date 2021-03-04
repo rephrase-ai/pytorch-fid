@@ -96,7 +96,7 @@ class ImagePathDataset(torch.utils.data.Dataset):
         img = img[..., ::-1].copy()
         if self.transforms is not None:
             img = self.transforms(img)
-        return img.type(torch.FloatTensor)
+        return img.float()
 
 
 def get_activations(files, model, batch_size=50, dims=2048, device="cpu"):
@@ -259,6 +259,23 @@ def compute_statistics_of_path(path, model, batch_size, dims, device):
         m, s = calculate_activation_statistics(files, model, batch_size, dims, device)
 
     return m, s
+
+
+def calculate_fid_given_file_lists(file_list_1, file_list_2, batch_size, device, dims):
+    """Calculates the FID of two file lists"""
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+
+    model = InceptionV3([block_idx]).to(device)
+
+    m1, s1 = calculate_activation_statistics(
+        file_list_1, model, batch_size, dims, device
+    )
+    m2, s2 = calculate_activation_statistics(
+        file_list_2, model, batch_size, dims, device
+    )
+    fid_value = calculate_frechet_distance(m1, s1, m2, s2)
+
+    return fid_value
 
 
 def calculate_fid_given_paths(paths, batch_size, device, dims):
